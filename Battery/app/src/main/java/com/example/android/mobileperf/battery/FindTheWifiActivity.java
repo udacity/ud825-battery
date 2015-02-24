@@ -15,29 +15,23 @@
  */
 package com.example.android.mobileperf.battery;
 
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 
 public class FindTheWifiActivity extends ActionBarActivity {
     public static final String LOG_TAG = "FindTheWifiActivity";
 
     TextView mWifiMsg;
+    ComponentName mServiceComponent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +39,9 @@ public class FindTheWifiActivity extends ActionBarActivity {
         setContentView(R.layout.activity_wifi);
 
         mWifiMsg = (TextView) findViewById(R.id.wifi_txt);
+        mServiceComponent = new ComponentName(this, MyJobService.class);
+        Intent startServiceIntent = new Intent(this, MyJobService.class);
+        startService(startServiceIntent);
 
         Button theButtonThatNetworks = (Button) findViewById(R.id.wifi_download);
         theButtonThatNetworks.setText(R.string.network_button);
@@ -52,87 +49,32 @@ public class FindTheWifiActivity extends ActionBarActivity {
         theButtonThatNetworks.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                downloadSomething();
+                downloadSmarter();
             }
         });
     }
 
     /**
-     * This is a placeholder method for where your app might do something interesting! Try not to
-     * confuse it with functional code.
-     *
-     * In this case, it can help to check the strength of the network connection before
-     * your app tries connect to the network. For downloads that aren't time-sensitive or
-     * that are not user-initiated, you want to avoid weak network connections in favor of WiFi.
-     * These data fetches can also benefit from batching, especially with similar actions from other
-     * applications.
-     *
-     * In this sample, we are going to demonstrate how to connect to a server, and then how to
-     * schedule such network connections with the JobScheduler API. You'll note that this looks
-     * remarkably familiar to the wake lock task. The main difference here is identifying what
-     * kind of network connection is important (mainly, WiFi).
+     * This method polls the server via the JobScheduler API. This is the same as in the previous
+     * task concerning wake locks, but now we can fine-tune our job requirements so that we are
+     * only connecting via WiFi. There are many possible configurations with the JobScheduler API,
+     * and you can use them to fine-tune your job requirements. Check the documentation for more
+     * information.
+     * https://developer.android.com/reference/android/app/job/JobInfo.Builder.html
      */
-    private void downloadSomething() {
-        for (int i=0; i<10; i++) {
-            mWifiMsg.append("Connection attempt, take " + i + ":\n");
-            // Always check that the network is available before trying to connect. You don't want
-            // to break things and embarrass yourself.
-            if (isNetworkConnected()) {
-                new SimpleDownloadTask().execute();
-            } else {
-                mWifiMsg.setText("No connection on job " + i + "; SAD FACE");
-            }
-        }
-    }
+    private void downloadSmarter() {
+        JobScheduler scheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        // Beginning with 10 here to distinguish this activity's jobs from the
+        // FreeTheWakelockActivity's jobs within the JobScheduler API.
+        for (int i=10; i<20; i++) {
+            JobInfo jobInfo = new JobInfo.Builder(i, mServiceComponent)
+                    .setMinimumLatency(5000) // 5 seconds
+                    .setOverrideDeadline(60000) // 60 seconds (for brevity in the sample)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED) // for Wifi only
+                    .build();
 
-    /**
-     * Determines if the device is currently online.
-     */
-    private boolean isNetworkConnected() {
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.isConnected());
-    }
-
-    /**
-     *  Uses AsyncTask to create a task away from the main UI thread. This task creates a
-     *  HTTPUrlConnection, and then downloads the contents of the webpage as an InputStream.
-     *  The InputStream is then converted to a String, which is displayed in the UI by the
-     *  onPostExecute() method.
-     */
-    private class SimpleDownloadTask extends AsyncTask<Void, Void, String> {
-        @Override
-        protected String doInBackground(Void... params) {
-            try {
-                // Only display the first 50 characters of the retrieved web page content.
-                int len = 50;
-
-                URL url = new URL("https://www.google.com");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setReadTimeout(10000); // 10 seconds
-                conn.setConnectTimeout(15000); // 15 seconds
-                conn.setRequestMethod("GET");
-                //Starts the query
-                conn.connect();
-                int response = conn.getResponseCode();
-                Log.d(LOG_TAG, "The response is: " + response);
-                InputStream is = conn.getInputStream();
-
-                // Convert the input stream to a string
-                Reader reader = new InputStreamReader(is, "UTF-8");
-                char[] buffer = new char[len];
-                reader.read(buffer);
-                return new String(buffer);
-
-            } catch (IOException e) {
-                return "Unable to retrieve web page.";
-            }
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            mWifiMsg.append("\n" + result);
+            mWifiMsg.append("Scheduling job " + i + "!\n");
+            scheduler.schedule(jobInfo);
         }
     }
 }
