@@ -15,6 +15,10 @@
  */
 package com.example.android.mobileperf.battery;
 
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.View;
@@ -78,7 +82,35 @@ public class WaitForPowerActivity extends ActionBarActivity {
     }
 
     private void applyFilter() {
+        // If not plugged in, wait to apply the filter.
+        if (!checkForPower()) {
+            mPowerMsg.setText(R.string.waiting_for_power);
+            return;
+        }
+
         mCheyennePic.setImageResource(R.drawable.pink_cheyenne);
         mPowerMsg.setText(R.string.photo_filter);
+    }
+
+    /**
+     * This method checks for power by comparing the current battery state against all possible
+     * plugged in states. In this case, a device may be considered plugged in either by USB, AC, or
+     * wireless charge. (Wireless charge was introduced in API Level 17.)
+     */
+    private boolean checkForPower() {
+        // It is very easy to subscribe to changes to the battery state, but you can get the current
+        // state by simply passing null in as your receiver.  Nifty, isn't that?
+        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = this.registerReceiver(null, filter);
+
+        // There are currently three ways a device can be plugged in. We should check them all.
+        int chargePlug = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        boolean usbCharge = (chargePlug == BatteryManager.BATTERY_PLUGGED_USB);
+        boolean acCharge = (chargePlug == BatteryManager.BATTERY_PLUGGED_AC);
+        boolean wirelessCharge = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            wirelessCharge = (chargePlug == BatteryManager.BATTERY_PLUGGED_WIRELESS);
+        }
+        return (usbCharge || acCharge || wirelessCharge);
     }
 }

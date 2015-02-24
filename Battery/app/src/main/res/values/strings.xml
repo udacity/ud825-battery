@@ -24,5 +24,6 @@
     <string name="photo_taken">Success! Here\'s your photo!</string>
     <string name="photo_filter">On Wednesdays, we filter pink.</string>
     <string name="photo_preview">A preview of the image that was just taken. In this sample, it is a placeholder image of an adorable puppy.</string>
+    <string name="waiting_for_power">This feature works best when plugged in. Let\'s wait together!</string>
 
 </resources>
