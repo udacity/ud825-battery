@@ -15,33 +15,23 @@
  */
 package com.example.android.mobileperf.battery;
 
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
+import android.content.Intent;
 import android.os.Bundle;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 
 public class FreeTheWakelockActivity extends ActionBarActivity {
     public static final String LOG_TAG = "FreeTheWakelockActivity";
 
-    PowerManager mPowerManager;
-    WakeLock mWakeLock;
     TextView mWakeLockMsg;
+    ComponentName mServiceComponent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,8 +39,9 @@ public class FreeTheWakelockActivity extends ActionBarActivity {
         setContentView(R.layout.activity_wakelock);
 
         mWakeLockMsg = (TextView) findViewById(R.id.wakelock_txt);
-        mPowerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyWakelockTag");
+        mServiceComponent = new ComponentName(this, MyJobService.class);
+        Intent startServiceIntent = new Intent(this, MyJobService.class);
+        startService(startServiceIntent);
 
         Button theButtonThatWakelocks = (Button) findViewById(R.id.wakelock_poll);
         theButtonThatWakelocks.setText(R.string.poll_server_button);
@@ -64,94 +55,33 @@ public class FreeTheWakelockActivity extends ActionBarActivity {
     }
 
     /**
-     * These are placeholder methods for where your app might do something interesting! Try not to
-     * confuse them with functional code.
+     * This method polls the server via the JobScheduler API. By scheduling the job with this API,
+     * your app can be confident it will execute, but without the need for a wake lock. Rather, the
+     * API will take your network jobs and execute them in batch to best take advantage of the
+     * initial network connection cost.
      *
-     * In this case, we are showing how your app might want to poll your server for an update that
-     * isn't time-sensitive. Perhaps you have new data every day, or regularly scheduled content
-     * updates that are not user-initiated. To perform these updates, you might use a wakelock in
-     * a background service to fetch the content when the user is not currently using the phone.
-     * These data fetches can benefit from batching.
+     * The JobScheduler API works through a background service. In this sample, we have
+     * a simple service in MyJobService to get you started. The job is scheduled here in
+     * the activity, but the job itself is executed in MyJobService in the startJob() method. For
+     * example, to poll your server, you would create the network connection, send your GET
+     * request, and then process the response all in MyJobService. This allows the JobScheduler API
+     * to invoke your logic without needed to restart your activity.
      *
-     * In this sample, we are going to demonstrate how to "poll" a server using a wakelock. For
-     * brevity, in this sample, we are simplifying the situation by running the same task several
-     * times in quick succession. However, in your app, try to think of similar tasks you run
-     * several times throughout the day/week/etc. Is each occurrence necessary? Can any of them
-     * wait? For example, how many times are you connecting to the network in the background?
+     * For brevity in the sample, we are scheduling the same job several times in quick succession,
+     * but again, try to consider similar tasks occurring over time in your application that can
+     * afford to wait and may benefit from batching.
      */
-    private void pollServer() {
-        mWakeLockMsg.setText("Polling the server! This day sure went by fast.");
+    public void pollServer() {
+        JobScheduler scheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
         for (int i=0; i<10; i++) {
-            mWakeLock.acquire();
-            mWakeLockMsg.append("Connection attempt, take " + i + ":\n");
-            mWakeLockMsg.append(getString(R.string.wakelock_acquired));
+            JobInfo jobInfo = new JobInfo.Builder(i, mServiceComponent)
+                    .setMinimumLatency(5000) // 5 seconds
+                    .setOverrideDeadline(60000) // 60 seconds (for brevity in the sample)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY) // WiFi or data connections
+                    .build();
 
-            // Always check that the network is available before trying to connect. You don't want
-            // to break things and embarrass yourself.
-            if (isNetworkConnected()) {
-                new SimpleDownloadTask().execute();
-            } else {
-                mWakeLockMsg.append("No connection on job " + i + "; SAD FACE");
-            }
-        }
-    }
-
-    private void releaseWakeLock() {
-        if (mWakeLock.isHeld()) {
-            mWakeLock.release();
-            mWakeLockMsg.append(getString(R.string.wakelock_released));
-        }
-    }
-
-    /**
-     * Determines if the device is currently online.
-     */
-    private boolean isNetworkConnected() {
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.isConnected());
-    }
-
-    /**
-     *  Uses AsyncTask to create a task away from the main UI thread. This task creates a
-     *  HTTPUrlConnection, and then downloads the contents of the webpage as an InputStream.
-     *  The InputStream is then converted to a String, which is displayed in the UI by the
-     *  onPostExecute() method.
-     */
-    private class SimpleDownloadTask extends AsyncTask<Void, Void, String> {
-        @Override
-        protected String doInBackground(Void... params) {
-            try {
-                // Only display the first 50 characters of the retrieved web page content.
-                int len = 50;
-
-                URL url = new URL("https://www.google.com");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setReadTimeout(10000); // 10 seconds
-                conn.setConnectTimeout(15000); // 15 seconds
-                conn.setRequestMethod("GET");
-                //Starts the query
-                conn.connect();
-                int response = conn.getResponseCode();
-                Log.d(LOG_TAG, "The response is: " + response);
-                InputStream is = conn.getInputStream();
-
-                // Convert the input stream to a string
-                Reader reader = new InputStreamReader(is, "UTF-8");
-                char[] buffer = new char[len];
-                reader.read(buffer);
-                return new String(buffer);
-
-            } catch (IOException e) {
-                return "Unable to retrieve web page.";
-            }
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            mWakeLockMsg.append("\n" + result + "\n");
-            releaseWakeLock();
+            mWakeLockMsg.append("Scheduling job " + i + "!\n");
+            scheduler.schedule(jobInfo);
         }
     }
 }

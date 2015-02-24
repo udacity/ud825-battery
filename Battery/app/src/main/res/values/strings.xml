@@ -26,9 +26,6 @@
     <string name="photo_filter">On Wednesdays, we filter pink.</string>
     <string name="photo_preview">A preview of the image that was just taken. In this sample, it is a placeholder image of an adorable puppy.</string>
     <string name="waiting_for_power">This feature works best when plugged in. Let\'s wait together!</string>
-    <string name="poll_server_button">Poll your server! I dare you.</string>
-    <string name="release_wakelock_button">Release the WAKELOCK!</string>
-    <string name="wakelock_acquired">Wakelock acquired! Polling server...</string>
-    <string name="wakelock_released">Wakelock released! Well done, you.</string>
+    <string name="poll_server_button">Poll smarter, be smarter.</string>
 
 </resources>
