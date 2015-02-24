@@ -17,6 +17,10 @@ limitations under the License.
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.android.mobileperf.battery" >
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -34,6 +38,14 @@ limitations under the License.
         <activity
             android:name=".WaitForPowerActivity"
             android:label="@string/title_activity_wait_for_power"
+            android:parentActivityName="com.example.android.mobileperf.battery.MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.android.mobileperf.battery.MainActivity" />
+        </activity>
+        <activity
+            android:name=".FreeTheWakelockActivity"
+            android:label="@string/title_activity_free_the_wakelock"
             android:parentActivityName="com.example.android.mobileperf.battery.MainActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"

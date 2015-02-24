@@ -35,6 +35,7 @@ public class MainActivity extends ActionBarActivity {
         ViewGroup rootView = (ViewGroup) findViewById(R.id.main_rootview);
 
         addButton(WaitForPowerActivity.class, "Battery-heavy is no good", rootView);
+        addButton(FreeTheWakelockActivity.class, "Release the wakelock!", rootView);
     }
 
     public void addButton(final Class destination, String description, ViewGroup parent) {
