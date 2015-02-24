@@ -36,6 +36,7 @@ public class MainActivity extends ActionBarActivity {
 
         addButton(WaitForPowerActivity.class, "Battery-heavy is no good", rootView);
         addButton(FreeTheWakelockActivity.class, "Release the wakelock!", rootView);
+        addButton(FindTheWifiActivity.class, "No WiFi, no deal", rootView);
     }
 
     public void addButton(final Class destination, String description, ViewGroup parent) {

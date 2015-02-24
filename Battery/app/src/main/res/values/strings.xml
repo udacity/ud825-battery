@@ -20,6 +20,7 @@
     <string name="action_settings">Settings</string>
     <string name="title_activity_wait_for_power">WaitForPowerActivity</string>
     <string name="title_activity_free_the_wakelock">FreeTheWakelockActivity</string>
+    <string name="title_activity_find_the_wifi">FindTheWifiActivity</string>
     <string name="take_photo_button">Take a photo! Perhaps of a cute dog?</string>
     <string name="filter_photo_button">Filter that puppy! Let it be pink!</string>
     <string name="photo_taken">Success! Here\'s your photo!</string>
@@ -27,5 +28,6 @@
     <string name="photo_preview">A preview of the image that was just taken. In this sample, it is a placeholder image of an adorable puppy.</string>
     <string name="waiting_for_power">This feature works best when plugged in. Let\'s wait together!</string>
     <string name="poll_server_button">Poll smarter, be smarter.</string>
+    <string name="network_button">Download all the data, signal or no!</string>
 
 </resources>
