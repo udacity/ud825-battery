@@ -56,7 +56,7 @@ public class MyJobService extends JobService {
         Log.i(LOG_TAG, "Totally and completely working on job " + params.getJobId());
         // First, check the network, and then attempt to connect.
         if (isNetworkConnected()) {
-            new SimpleDownloadTask().execute();
+            new SimpleDownloadTask() .execute(params);
             return true;
         } else {
             Log.i(LOG_TAG, "No connection on job " + params.getJobId() + "; sad face");
@@ -93,9 +93,14 @@ public class MyJobService extends JobService {
      *  The InputStream is then converted to a String, which is logged by the
      *  onPostExecute() method.
      */
-    private class SimpleDownloadTask extends AsyncTask<Void, Void, String> {
+    private class SimpleDownloadTask extends AsyncTask<JobParameters, Void, String> {
+
+        protected JobParameters mJobParam;
+
         @Override
-        protected String doInBackground(Void... params) {
+        protected String doInBackground(JobParameters... params) {
+            // cache system provided job requirements
+            mJobParam = params[0];
             try {
                 InputStream is = null;
                 // Only display the first 50 characters of the retrieved web page content.
@@ -126,6 +131,7 @@ public class MyJobService extends JobService {
 
         @Override
         protected void onPostExecute(String result) {
+            jobFinished(mJobParam, false);
             Log.i(LOG_TAG, result);
         }
     }
